@@ -1,0 +1,5 @@
+aws2 cloudformation create-stack --stack-name=alb-oidc --template-body=file://alb-oidc-cloudformation.yml --parameters file://cf-params.json
+
+aws2 cloudformation update-stack --stack-name=alb-oidc --template-body=file://alb-oidc-cloudformation.yml --parameters file://cf-params.json
+
+aws2 cloudformation delete-stack --stack-name=alb-oidc

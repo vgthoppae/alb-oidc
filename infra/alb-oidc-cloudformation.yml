@@ -1,0 +1,141 @@
+AWSTemplateFormatVersion: 2010-09-09
+Description: >-
+  Creates an ALB integrated with OKTA OIDC
+
+Parameters:
+  targetLambdaName:
+    Type: String
+
+  targetGroupName:
+    Type: String  
+    Default: tg-timetellerLambda
+
+  albAccessLogsBucketName:
+    Type: String
+
+  albSubnetIds:
+    Type: List<AWS::EC2::Subnet::Id>
+
+  sslCertificateArn:
+    Type: String
+
+  authorizationEndpoint:
+    Type: String
+    
+  clientId:
+    Type: String
+ 
+  clientSecret:
+    Type: String
+    
+  issuer:
+    Type: String
+    
+  tokenEndpoint:
+    Type: String
+    
+  userInfoEndpoint:
+    Type: String  
+    
+  apiDnsName:
+    Type: String  
+      
+Resources:
+  AlbSimpleBedLambdaInvokePermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      FunctionName: !Sub "arn:aws:lambda:us-east-1:${AWS::AccountId}:function:${targetLambdaName}" 
+      Action: 'lambda:InvokeFunction'
+      Principal: elasticloadbalancing.amazonaws.com  
+
+  AlbSimpleBedTargetGroup:
+    Type: AWS::ElasticLoadBalancingV2::TargetGroup
+    Properties:
+      HealthCheckEnabled: true
+      Name: !Ref targetGroupName
+      TargetType: lambda
+      Targets:
+        - Id: !Sub "arn:aws:lambda:us-east-1:${AWS::AccountId}:function:${targetLambdaName}" 
+      HealthCheckEnabled: true
+      HealthCheckIntervalSeconds: 60
+      HealthCheckPath: /health
+      HealthCheckTimeoutSeconds: 30
+      HealthyThresholdCount: 3
+      UnhealthyThresholdCount: 3
+      TargetGroupAttributes:
+        - Key: lambda.multi_value_headers.enabled
+          Value: false
+      Tags:
+        - Key: Project
+          Value: ALB-OIDC Integration          
+
+  AlbOidcLoadBalancer:
+    Type: AWS::ElasticLoadBalancingV2::LoadBalancer
+    Properties:
+      LoadBalancerAttributes:
+        - Key: access_logs.s3.enabled
+          Value: true
+        - Key: access_logs.s3.bucket
+          Value: !Ref albAccessLogsBucketName
+        - Key: access_logs.s3.prefix
+          Value: alb
+      Name: alb-oidc-auth
+      Subnets: !Ref albSubnetIds
+      Tags:
+        - Key: Project
+          Value: ALB-OIDC Integration
+      Type: application
+
+  AlbOidcLoadBalancerListener:
+    Type: AWS::ElasticLoadBalancingV2::Listener
+    Properties:
+      LoadBalancerArn: !Ref AlbOidcLoadBalancer
+      Certificates: 
+        - CertificateArn: !Ref sslCertificateArn
+      DefaultActions:
+        - Type: authenticate-oidc
+          Order: 1
+          AuthenticateOidcConfig:
+            AuthorizationEndpoint: !Ref authorizationEndpoint
+            ClientId: !Ref clientId
+            ClientSecret: !Ref clientSecret
+            Issuer: !Ref issuer
+            OnUnauthenticatedRequest: authenticate
+            Scope: openid profile
+            SessionCookieName: AWSELBAuthSessionCookie
+            SessionTimeout: 604800
+            TokenEndpoint: !Ref tokenEndpoint
+            UserInfoEndpoint: !Ref userInfoEndpoint
+        - Type: forward
+          TargetGroupArn: !Ref AlbSimpleBedTargetGroup
+          Order: 2
+      Port: 443
+      Protocol: HTTPS 
+
+  Route53RecordsetCName:
+    Type: AWS::Route53::RecordSet
+    Properties: 
+      Comment: CName Recordset to point to the ALB
+      HostedZoneId: Z3KTE4Y7NS6TV0
+      Name: !Ref apiDnsName
+      TTL: 300
+      Type: CNAME 
+      ResourceRecords: 
+        - !GetAtt AlbOidcLoadBalancer.DNSName  
+
+Outputs:
+  AlbSimpleBedTargetGroupArn:
+    Description: Lambda target group
+    Value: !Ref AlbSimpleBedTargetGroup
+
+  AlbOidcLoadBalancerArn:
+    Description: ARN for the ALB Load Balancer with OIDC Authentication
+    Value: !Ref AlbOidcLoadBalancer
+
+  AlbOidcLoadBalancerDnsName:
+    Description: DNS Name for the ALB Load Balancer with OIDC Authentication
+    Value: !GetAtt AlbOidcLoadBalancer.DNSName   
+
+  # Route53Url:
+  #   Description: Route 53 URL for the ALB Load Balancer with OIDC Authentication
+  #   Value: !GetAtt Route53RecordsetCName.Name       

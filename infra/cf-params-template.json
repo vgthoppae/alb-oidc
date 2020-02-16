@@ -1,0 +1,46 @@
+[
+  {
+    "ParameterKey": "targetLambdaName",
+    "ParameterValue": "lambdas-dev-timeteller"
+  },
+  {
+    "ParameterKey": "albAccessLogsBucketName",
+    "ParameterValue": "{validBucketName}"
+  },
+  {
+    "ParameterKey": "albSubnetIds",
+    "ParameterValue": "subnet-xxxxx, subnet-yyyy"
+  },
+  {
+    "ParameterKey": "sslCertificateArn",
+    "ParameterValue": "arn:aws:acm:us-east-1:xxx:certificate/yyy"
+  },
+  {
+    "ParameterKey": "authorizationEndpoint",
+    "ParameterValue": "https://dev-XXXXX.okta.com/oauth2/default/v1/authorize"
+  },
+  {
+    "ParameterKey": "clientId",
+    "ParameterValue": "XXX"
+  },
+  {
+    "ParameterKey": "clientSecret",
+    "ParameterValue": "XXX"
+  },
+  {
+    "ParameterKey": "issuer",
+    "ParameterValue": "https://dev-XXX.okta.com/oauth2/default"
+  },
+  {
+    "ParameterKey": "tokenEndpoint",
+    "ParameterValue": "https://dev-XXX.okta.com/oauth2/default/v1/token"
+  },
+  {
+    "ParameterKey": "userInfoEndpoint",
+    "ParameterValue": "https://dev-XXX.okta.com/oauth2/default/v1/userinfo"
+  },
+  {
+    "ParameterKey": "apiDnsName",
+    "ParameterValue": "timeteller.weallareawesome.com"
+  }
+]
